@@ -1,4 +1,4 @@
-# DirtyCHAT
+# Capital Sin
 
 Private Chrome extension to export conversations from multiple AI platforms (ChatGPT, Grok, Gemini, DeepSeek, Qwen, and more) with deep customization and Gemini-powered AI tools. Supports Notion export, local downloads, attachments, screenshot, and advanced editing.
 
@@ -226,4 +226,4 @@ For issues or improvements, check the code and feel free to modify for your need
 
 ---
 
-**Last updated**: 2024
+**Last updated**: Fri, 29 May 2026
