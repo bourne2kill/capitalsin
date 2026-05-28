@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capital Sin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>Capital Sin</h2>
+  
+  <!-- Participant Customization -->
+  <section>
+    <h3>Customize Participants</h3>
+    <label>AI Name: <input id="ai-name" value="AI"></label>
+    <label>AI Avatar: <input type="file" id="ai-img" accept="image/*"></label>
+    
+    <label>Your Name: <input id="user-name" value="You"></label>
+    <label>Your Avatar: <input type="file" id="user-img" accept="image/*"></label>
+  </section>
+  
+  <!-- Editing & Customization -->
+  <section>
+    <h3>Edit & Enhance</h3>
+    <button id="edit-messages">Edit Messages</button>
+    <label>Attach Files: <input id="attach-file" type="file" accept=".md,.pdf,image/*" multiple></label>
+    <label>Header Image: <input type="file" id="header-img" accept="image/*"></label>
+    <label>Footer Image: <input type="file" id="footer-img" accept="image/*"></label>
+  </section>
+  
+  <!-- Notion Export -->
+  <section>
+    <h3>Notion Export</h3>
+    <label>Notion Integration Token: <input id="notion-token" type="password" placeholder="Your Notion API Token"></label>
+    <label>Notion DB/Page ID: <input id="notion-db" placeholder="Optional: Database or Page ID"></label>
+    <button id="to-notion">Export to Notion</button>
+  </section>
+  
+  <!-- Local Export -->
+  <section>
+    <h3>Local Export</h3>
+    <button id="export-html">HTML</button>
+    <button id="export-md">Markdown</button>
+    <button id="export-pdf">PDF</button>
+  </section>
+  
+  <!-- Screenshots -->
+  <section>
+    <h3>Screenshot</h3>
+    <button id="screenshot-full">Screenshot (Full Page)</button>
+  </section>
+  
+  <!-- AI Agent (Gemini) -->
+  <section>
+    <details>
+      <summary>AI Agent (Gemini, optional)</summary>
+      <label>Gemini API Key:
+        <input type="password" id="gemini-api-key" placeholder="AI Studio API Key">
+      </label>
+      <label>Gemini Model:
+        <select id="gemini-model">
+          <option value="models/gemini-pro">gemini-pro</option>
+        </select>
+      </label>
+      <label>
+        Task:
+        <select id="gemini-task">
+          <option value="summarize">Summarize conversation</option>
+          <option value="analyze">Analyze sentiment/insights</option>
+          <option value="rewrite">Rewrite as concise</option>
+          <option value="custom">Custom instruction…</option>
+        </select>
+      </label>
+      <input id="gemini-custom" style="display:none" placeholder="Custom prompt">
+      <button id="gemini-run">Run Gemini</button>
+      <div id="gemini-result" style="white-space:pre-wrap;font-size:0.92em;margin-top:6px;border:1px solid #ccc;padding:8px;max-height:300px;overflow-y:auto;"></div>
+    </details>
+  </section>
+  
+  <!-- Status -->
+  <section>
+    <div id="status"></div>
+  </section>
+  
+  <script src="libs/html2pdf.bundle.min.js"></script>
+  <script src="notion_api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Capital Sin",
+  "description": "Privately export TogetherChat conversations with customization, Gemini, and Notion API.",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://chat.together.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.together.ai/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}
