@@ -226,4 +226,7 @@ For issues or improvements, check the code and feel free to modify for your need
 
 ---
 
+Capital Sin, Developed by PaglaAI
+Confesa your sin at sinner@aynaghor.space
+
 **Last updated**: Fri, 29 May 2026
