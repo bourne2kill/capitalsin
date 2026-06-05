@@ -1,0 +1,3 @@
+## 2025-06-05 - [Lazy-loading large libraries in Chrome Extensions]
+**Learning:** Large external libraries (like `html2pdf.bundle.min.js` at ~885KB) significantly increase the startup time of extension popups. Since popups are ephemeral and re-initialize every time they are opened, this impact is felt repeatedly by the user. Moving such libraries to a dynamic `loadScript` pattern reduces the initial JS execution and memory footprint by ~98% for users who don't use the specific feature.
+**Action:** Always check for large libraries in `manifest.json` or `popup.html` and consider lazy-loading them if they are only needed for specific user actions.

@@ -5,6 +5,28 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Utility: Load script dynamically (singleton promise to avoid race conditions)
+let scriptLoadingPromises = {};
+function loadScript(src) {
+  if (scriptLoadingPromises[src]) return scriptLoadingPromises[src];
+
+  scriptLoadingPromises[src] = new Promise((resolve, reject) => {
+    // Check if script is already in DOM
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      delete scriptLoadingPromises[src]; // Allow retry on failure
+      reject(new Error(`Failed to load script: ${src}`));
+    };
+    document.head.appendChild(script);
+  });
+
+  return scriptLoadingPromises[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -118,20 +140,27 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
-    const c_edited = applyEdits(c);
-    const html = buildHTML(c_edited, {headerImg, footerImg});
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
-  });
+document.getElementById('export-pdf').onclick = async () => {
+  setStatus('Loading PDF engine...');
+  try {
+    await loadScript('libs/html2pdf.bundle.min.js');
+    fetchChat(c => {
+      const c_edited = applyEdits(c);
+      const html = buildHTML(c_edited, {headerImg, footerImg});
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setTimeout(()=>document.body.removeChild(iframe),2000);
+      setStatus('✓ PDF export triggered');
+    });
+  } catch (e) {
+    setStatus('Error loading PDF engine: ' + e.message);
+  }
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
