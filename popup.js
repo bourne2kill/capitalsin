@@ -5,6 +5,20 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Utility: Lazy-load scripts
+const loadedScripts = {};
+function loadScript(src) {
+  if (loadedScripts[src]) return loadedScripts[src];
+  loadedScripts[src] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return loadedScripts[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -118,20 +132,27 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
-    const c_edited = applyEdits(c);
-    const html = buildHTML(c_edited, {headerImg, footerImg});
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
+document.getElementById('export-pdf').onclick = () => {
+  setStatus("Loading PDF library...");
+  loadScript('libs/html2pdf.bundle.min.js').then(() => {
+    fetchChat(c => {
+      const c_edited = applyEdits(c);
+      const html = buildHTML(c_edited, {headerImg, footerImg});
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setTimeout(()=>document.body.removeChild(iframe),2000);
+      setStatus('✓ PDF export triggered');
+    });
+  }).catch(err => {
+    console.error(err);
+    setStatus("Error loading PDF library.");
   });
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
