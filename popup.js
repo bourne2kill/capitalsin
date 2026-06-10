@@ -45,7 +45,7 @@ document.getElementById('attach-file').onchange = e => {
 
 // Build HTML export
 function buildHTML(chat, opts={}) {
-  let html = `<html><head><meta charset="UTF-8"><title>DirtyCHAT Export</title>
+  const parts = [`<html><head><meta charset="UTF-8"><title>DirtyCHAT Export</title>
     <style>
     body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;}
     .chat-container{max-width:800px;margin:auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
@@ -54,44 +54,41 @@ function buildHTML(chat, opts={}) {
     .sender{font-weight:bold;margin-bottom:4px;}
     .timestamp{font-size:0.8em;color:#999;margin-top:4px;}
     .attachments{margin-top:20px;padding-top:20px;border-top:1px solid #ccc;}
-    </style></head><body>`;
+    </style></head><body>`];
 
-  if (opts.headerImg) html += `<img src="${opts.headerImg}" style="width:100%;max-height:120px;border-radius:8px;margin-bottom:20px;">`;
+  if (opts.headerImg) parts.push(`<img src="${opts.headerImg}" style="width:100%;max-height:120px;border-radius:8px;margin-bottom:20px;">`);
   
-  html += `<div class="chat-container">`;
+  parts.push(`<div class="chat-container">`);
   
-  chat.forEach(m => {
-    html += `<div class="msg-${m.sender === userName ? 'You' : 'AI'}">
+  // Bolt: Optimized string construction using Array.map().join('') for better performance on large transcripts
+  parts.push(chat.map(m => `<div class="msg-${m.sender === userName ? 'You' : 'AI'}">
       <div class="sender">${m.sender}</div>
       <div class="text">${m.messageHTML}</div>
       ${m.timestamp ? `<div class="timestamp">${m.timestamp}</div>` : ""}
-    </div>`;
-  });
+    </div>`).join(""));
 
   if (attachments.length)
-    html += `<div class="attachments"><strong>Attachments:</strong><ul>${attachments.map(a=>`<li><a href="${a.url}" download="${a.name}">${a.name}</a></li>`).join("")}</ul></div>`;
+    parts.push(`<div class="attachments"><strong>Attachments:</strong><ul>${attachments.map(a=>`<li><a href="${a.url}" download="${a.name}">${a.name}</a></li>`).join("")}</ul></div>`);
   
-  html += `</div>`;
+  parts.push(`</div>`);
   
-  if (opts.footerImg) html += `<img src="${opts.footerImg}" style="width:100%;max-height:120px;border-radius:8px;margin-top:20px;">`;
+  if (opts.footerImg) parts.push(`<img src="${opts.footerImg}" style="width:100%;max-height:120px;border-radius:8px;margin-top:20px;">`);
   
-  html += `</body></html>`;
-  return html;
+  parts.push(`</body></html>`);
+  return parts.join("");
 }
 
 // Build Markdown export
 function buildMarkdown(chat) {
-  let md = `# DirtyCHAT Export\n\n`;
-  md += `**Exported:** ${new Date().toLocaleString()}\n\n`;
+  const parts = [`# DirtyCHAT Export\n\n`, `**Exported:** ${new Date().toLocaleString()}\n\n`];
   
-  chat.forEach((m) => {
-    md += `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`;
-  });
+  // Bolt: Optimized string construction using Array.map().join('') for better performance on large transcripts
+  parts.push(chat.map((m) => `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`).join(""));
   
   if (attachments.length)
-    md += `\n## Attachments\n${attachments.map(a=>`- [${a.name}](${a.url})`).join("\n")}\n`;
+    parts.push(`\n## Attachments\n${attachments.map(a=>`- [${a.name}](${a.url})`).join("\n")}\n`);
   
-  return md;
+  return parts.join("");
 }
 
 // Download utility
