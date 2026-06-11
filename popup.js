@@ -12,6 +12,23 @@ function fileToDataURL(file, fn) {
   reader.readAsDataURL(file);
 }
 
+// Utility: Load script dynamically (lazy loading)
+const loadedScripts = {};
+function loadScript(url) {
+  if (loadedScripts[url]) return loadedScripts[url];
+  loadedScripts[url] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      delete loadedScripts[url];
+      reject(new Error(`Failed to load script: ${url}`));
+    };
+    document.head.appendChild(script);
+  });
+  return loadedScripts[url];
+}
+
 // Fetch chat from content script
 function fetchChat(cb) {
   chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
@@ -118,20 +135,27 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
-    const c_edited = applyEdits(c);
-    const html = buildHTML(c_edited, {headerImg, footerImg});
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
-  });
+document.getElementById('export-pdf').onclick = async () => {
+  setStatus('Loading PDF library...');
+  try {
+    await loadScript('libs/html2pdf.bundle.min.js');
+    fetchChat(c => {
+      const c_edited = applyEdits(c);
+      const html = buildHTML(c_edited, {headerImg, footerImg});
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setTimeout(()=>document.body.removeChild(iframe),2000);
+      setStatus('✓ PDF export triggered');
+    });
+  } catch (e) {
+    setStatus('Error: ' + e.message);
+  }
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {

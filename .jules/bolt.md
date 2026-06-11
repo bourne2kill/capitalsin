@@ -1,0 +1,3 @@
+## 2026-06-11 - Lazy-loading heavy dependencies in Chrome extension popups
+**Learning:** Eagerly loading large libraries (e.g., html2pdf.js, ~900KB) in an extension's popup.html significantly increases the initial load time and memory footprint of the popup, even if the library's functionality is rarely used. Modern Chrome extensions should prioritize "Time to Interactive" by deferring the loading of non-critical assets.
+**Action:** Use a Promise-based `loadScript` utility to inject heavy dependencies only when their specific functionality is triggered by the user. Ensure the utility handles multiple calls to the same URL gracefully using a singleton pattern.
