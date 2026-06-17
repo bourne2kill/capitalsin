@@ -5,6 +5,20 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Lazy load scripts
+const scriptCache = {};
+function loadScript(src) {
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return scriptCache[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -60,13 +74,12 @@ function buildHTML(chat, opts={}) {
   
   html += `<div class="chat-container">`;
   
-  chat.forEach(m => {
-    html += `<div class="msg-${m.sender === userName ? 'You' : 'AI'}">
+  html += chat.map(m => `
+    <div class="msg-${m.sender === userName ? 'You' : 'AI'}">
       <div class="sender">${m.sender}</div>
       <div class="text">${m.messageHTML}</div>
       ${m.timestamp ? `<div class="timestamp">${m.timestamp}</div>` : ""}
-    </div>`;
-  });
+    </div>`).join('');
 
   if (attachments.length)
     html += `<div class="attachments"><strong>Attachments:</strong><ul>${attachments.map(a=>`<li><a href="${a.url}" download="${a.name}">${a.name}</a></li>`).join("")}</ul></div>`;
@@ -84,9 +97,7 @@ function buildMarkdown(chat) {
   let md = `# DirtyCHAT Export\n\n`;
   md += `**Exported:** ${new Date().toLocaleString()}\n\n`;
   
-  chat.forEach((m) => {
-    md += `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`;
-  });
+  md += chat.map(m => `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`).join('');
   
   if (attachments.length)
     md += `\n## Attachments\n${attachments.map(a=>`- [${a.name}](${a.url})`).join("\n")}\n`;
@@ -119,7 +130,9 @@ document.getElementById('export-md').onclick = () =>
   });
 
 document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
+  fetchChat(async c => {
+    setStatus("Loading PDF library...");
+    await loadScript('libs/html2pdf.bundle.min.js');
     const c_edited = applyEdits(c);
     const html = buildHTML(c_edited, {headerImg, footerImg});
     const iframe = document.createElement("iframe");
@@ -188,7 +201,9 @@ function applyEdits(chat) {
 
 // Notion integration
 document.getElementById('to-notion').onclick = () => {
-  fetchChat(c => {
+  fetchChat(async c => {
+    setStatus("Loading Notion integration...");
+    await loadScript('notion_api.js');
     setStatus("Exporting to Notion...");
     const token = document.getElementById('notion-token').value.trim();
     const db = document.getElementById('notion-db').value.trim();
