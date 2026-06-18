@@ -1,0 +1,3 @@
+## 2025-05-22 - Lazy Loading Heavy Scripts and Optimizing String Construction
+**Learning:** Large external libraries like `html2pdf.bundle.min.js` (~885KB) and integration scripts like `notion_api.js` significantly increase the initial load time of the extension popup, even if the user never uses those specific export features. Additionally, iterative string concatenation (`+=`) in loops for building large HTML or Markdown exports can be less efficient than `Array.map().join('')` in modern V8 environments.
+**Action:** Implement a lazy loading mechanism for these scripts and refactor string construction to use more efficient patterns.
