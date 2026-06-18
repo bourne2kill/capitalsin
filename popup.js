@@ -5,6 +5,19 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+const scriptCache = {};
+function loadScript(src) {
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return scriptCache[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -60,13 +73,12 @@ function buildHTML(chat, opts={}) {
   
   html += `<div class="chat-container">`;
   
-  chat.forEach(m => {
-    html += `<div class="msg-${m.sender === userName ? 'You' : 'AI'}">
+  html += chat.map(m => `
+    <div class="msg-${m.sender === userName ? 'You' : 'AI'}">
       <div class="sender">${m.sender}</div>
       <div class="text">${m.messageHTML}</div>
       ${m.timestamp ? `<div class="timestamp">${m.timestamp}</div>` : ""}
-    </div>`;
-  });
+    </div>`).join('');
 
   if (attachments.length)
     html += `<div class="attachments"><strong>Attachments:</strong><ul>${attachments.map(a=>`<li><a href="${a.url}" download="${a.name}">${a.name}</a></li>`).join("")}</ul></div>`;
@@ -84,9 +96,7 @@ function buildMarkdown(chat) {
   let md = `# DirtyCHAT Export\n\n`;
   md += `**Exported:** ${new Date().toLocaleString()}\n\n`;
   
-  chat.forEach((m) => {
-    md += `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`;
-  });
+  md += chat.map(m => `**${m.sender}:**\n${m.messageMD}\n${m.timestamp ? `_(${m.timestamp})_` : ""} \n\n`).join('');
   
   if (attachments.length)
     md += `\n## Attachments\n${attachments.map(a=>`- [${a.name}](${a.url})`).join("\n")}\n`;
@@ -119,7 +129,7 @@ document.getElementById('export-md').onclick = () =>
   });
 
 document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
+  fetchChat(async c => {
     const c_edited = applyEdits(c);
     const html = buildHTML(c_edited, {headerImg, footerImg});
     const iframe = document.createElement("iframe");
@@ -128,9 +138,14 @@ document.getElementById('export-pdf').onclick = () =>
     iframe.contentDocument.open();
     iframe.contentDocument.write(html);
     iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+    try {
+      await loadScript('libs/html2pdf.bundle.min.js');
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setStatus('✓ PDF export triggered');
+    } catch (e) {
+      setStatus('✗ PDF library load failed');
+    }
     setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
   });
 
 document.getElementById('export-doc').onclick = () =>
@@ -188,7 +203,7 @@ function applyEdits(chat) {
 
 // Notion integration
 document.getElementById('to-notion').onclick = () => {
-  fetchChat(c => {
+  fetchChat(async c => {
     setStatus("Exporting to Notion...");
     const token = document.getElementById('notion-token').value.trim();
     const db = document.getElementById('notion-db').value.trim();
@@ -196,9 +211,14 @@ document.getElementById('to-notion').onclick = () => {
       setStatus("✗ Please enter Notion integration token");
       return;
     }
-    sendToNotion(token, db, buildMarkdown(applyEdits(c)), (ok,msg) => 
-      setStatus(ok?"✓ Exported to Notion":("✗ "+(msg||"Error")))
-    );
+    try {
+      await loadScript('notion_api.js');
+      sendToNotion(token, db, buildMarkdown(applyEdits(c)), (ok,msg) =>
+        setStatus(ok?"✓ Exported to Notion":("✗ "+(msg||"Error")))
+      );
+    } catch (e) {
+      setStatus('✗ Notion API script load failed');
+    }
   });
 };
 
