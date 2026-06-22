@@ -5,6 +5,20 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Utility: Lazy load heavy scripts
+const scriptCache = {};
+function loadScript(src) {
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return scriptCache[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -118,7 +132,8 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
+document.getElementById('export-pdf').onclick = async () => {
+  await loadScript('libs/html2pdf.bundle.min.js');
   fetchChat(c => {
     const c_edited = applyEdits(c);
     const html = buildHTML(c_edited, {headerImg, footerImg});
@@ -132,6 +147,7 @@ document.getElementById('export-pdf').onclick = () =>
     setTimeout(()=>document.body.removeChild(iframe),2000);
     setStatus('✓ PDF export triggered');
   });
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
@@ -187,7 +203,8 @@ function applyEdits(chat) {
 }
 
 // Notion integration
-document.getElementById('to-notion').onclick = () => {
+document.getElementById('to-notion').onclick = async () => {
+  await loadScript('notion_api.js');
   fetchChat(c => {
     setStatus("Exporting to Notion...");
     const token = document.getElementById('notion-token').value.trim();
