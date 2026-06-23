@@ -5,6 +5,20 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Singleton script loader for performance
+const scriptCache = {};
+function loadScript(url) {
+  if (scriptCache[url]) return scriptCache[url];
+  scriptCache[url] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return scriptCache[url];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -118,7 +132,9 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
+document.getElementById('export-pdf').onclick = async () => {
+  setStatus("Loading PDF library...");
+  await loadScript('libs/html2pdf.bundle.min.js');
   fetchChat(c => {
     const c_edited = applyEdits(c);
     const html = buildHTML(c_edited, {headerImg, footerImg});
@@ -132,6 +148,7 @@ document.getElementById('export-pdf').onclick = () =>
     setTimeout(()=>document.body.removeChild(iframe),2000);
     setStatus('✓ PDF export triggered');
   });
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
@@ -187,7 +204,9 @@ function applyEdits(chat) {
 }
 
 // Notion integration
-document.getElementById('to-notion').onclick = () => {
+document.getElementById('to-notion').onclick = async () => {
+  setStatus("Loading Notion API...");
+  await loadScript('notion_api.js');
   fetchChat(c => {
     setStatus("Exporting to Notion...");
     const token = document.getElementById('notion-token').value.trim();
