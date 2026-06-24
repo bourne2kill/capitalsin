@@ -12,6 +12,20 @@ function fileToDataURL(file, fn) {
   reader.readAsDataURL(file);
 }
 
+// Lazy load scripts
+const scriptCache = {};
+function loadScript(src) {
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+  return scriptCache[src];
+}
+
 // Fetch chat from content script
 function fetchChat(cb) {
   chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
@@ -119,7 +133,8 @@ document.getElementById('export-md').onclick = () =>
   });
 
 document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
+  fetchChat(async c => {
+    await loadScript('libs/html2pdf.bundle.min.js');
     const c_edited = applyEdits(c);
     const html = buildHTML(c_edited, {headerImg, footerImg});
     const iframe = document.createElement("iframe");
@@ -188,8 +203,9 @@ function applyEdits(chat) {
 
 // Notion integration
 document.getElementById('to-notion').onclick = () => {
-  fetchChat(c => {
+  fetchChat(async c => {
     setStatus("Exporting to Notion...");
+    await loadScript('notion_api.js');
     const token = document.getElementById('notion-token').value.trim();
     const db = document.getElementById('notion-db').value.trim();
     if (!token) {
