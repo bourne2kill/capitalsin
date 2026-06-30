@@ -1,5 +1,22 @@
 // DirtyCHAT - Popup Logic
 
+// Lazy load scripts utility
+const scriptCache = {};
+function loadScript(url) {
+  if (scriptCache[url]) return scriptCache[url];
+  scriptCache[url] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = resolve;
+    script.onerror = () => {
+      delete scriptCache[url];
+      reject(new Error(`Failed to load script: ${url}`));
+    };
+    document.body.appendChild(script);
+  });
+  return scriptCache[url];
+}
+
 let chat = [];
 let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
@@ -118,20 +135,26 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
-    const c_edited = applyEdits(c);
-    const html = buildHTML(c_edited, {headerImg, footerImg});
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
-  });
+document.getElementById('export-pdf').onclick = async () => {
+  try {
+    await loadScript('libs/html2pdf.bundle.min.js');
+    fetchChat(c => {
+      const c_edited = applyEdits(c);
+      const html = buildHTML(c_edited, {headerImg, footerImg});
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setTimeout(()=>document.body.removeChild(iframe),2000);
+      setStatus('✓ PDF export triggered');
+    });
+  } catch (e) {
+    setStatus("Error: Failed to load PDF library");
+  }
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
@@ -187,7 +210,13 @@ function applyEdits(chat) {
 }
 
 // Notion integration
-document.getElementById('to-notion').onclick = () => {
+document.getElementById('to-notion').onclick = async () => {
+  try {
+    await loadScript('notion_api.js');
+  } catch (e) {
+    setStatus("Error: Failed to load Notion API library");
+    return;
+  }
   fetchChat(c => {
     setStatus("Exporting to Notion...");
     const token = document.getElementById('notion-token').value.trim();
