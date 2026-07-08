@@ -36,7 +36,8 @@ function extractChatGPT() {
   const turns = document.querySelectorAll('[data-testid^="conversation-turn-"]');
   const chat = [];
   turns.forEach(turn => {
-    const isUser = turn.querySelector('img[alt="User"]') || turn.innerText.includes('You');
+    // Optimization: Use textContent instead of innerText to avoid layout thrashing
+    const isUser = turn.querySelector('img[alt="User"]') || turn.textContent.includes('You');
     const sender = isUser ? 'You' : 'AI';
     const contentEl = turn.querySelector('.markdown') || turn.querySelector('.prose') || turn;
     chat.push({
@@ -53,7 +54,8 @@ function extractGrok() {
   const containers = document.querySelectorAll('div[data-testid="message-container"]');
   const chat = [];
   containers.forEach(msg => {
-    const sender = msg.innerText.toLowerCase().includes('grok') ? 'AI' : 'You';
+    // Optimization: Use textContent instead of innerText to avoid layout thrashing
+    const sender = msg.textContent.toLowerCase().includes('grok') ? 'AI' : 'You';
     const content = msg.querySelector('div[dir="auto"]') || msg;
     chat.push({
       sender,
@@ -101,7 +103,8 @@ function extractDeepSeek() {
   const items = document.querySelectorAll('.ds-message-item');
   const chat = [];
   items.forEach(item => {
-    const isUser = item.querySelector('.ds-icon--user') || item.innerText.includes('You');
+    // Optimization: Use textContent instead of innerText to avoid layout thrashing
+    const isUser = item.querySelector('.ds-icon--user') || item.textContent.includes('You');
     const sender = isUser ? 'You' : 'AI';
     const content = item.querySelector('.ds-markdown') || item;
     chat.push({
