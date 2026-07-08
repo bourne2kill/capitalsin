@@ -5,6 +5,28 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Script lazy loading cache
+const scriptCache = {};
+
+/**
+ * Dynamically loads a script and returns a promise.
+ * Ensures each script is only loaded once.
+ */
+function loadScript(src) {
+  if (scriptCache[src]) return scriptCache[src];
+  scriptCache[src] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = () => {
+      delete scriptCache[src];
+      reject(new Error(`Failed to load script: ${src}`));
+    };
+    document.head.appendChild(script);
+  });
+  return scriptCache[src];
+}
+
 // Utility: Convert file to Data URL
 function fileToDataURL(file, fn) {
   const reader = new FileReader();
@@ -118,20 +140,27 @@ document.getElementById('export-md').onclick = () =>
     setStatus('✓ Markdown exported');
   });
 
-document.getElementById('export-pdf').onclick = () =>
-  fetchChat(c => {
-    const c_edited = applyEdits(c);
-    const html = buildHTML(c_edited, {headerImg, footerImg});
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-    setStatus('✓ PDF export triggered');
-  });
+document.getElementById('export-pdf').onclick = async () => {
+  try {
+    await loadScript('libs/html2pdf.bundle.min.js');
+    fetchChat(c => {
+      const c_edited = applyEdits(c);
+      const html = buildHTML(c_edited, {headerImg, footerImg});
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      html2pdf().from(iframe.contentDocument.body).save('dirtychat-' + Date.now() + '.pdf');
+      setTimeout(()=>document.body.removeChild(iframe),2000);
+      setStatus('✓ PDF export triggered');
+    });
+  } catch (err) {
+    setStatus('✗ Error loading PDF library');
+    console.error(err);
+  }
+};
 
 document.getElementById('export-doc').onclick = () =>
   fetchChat(c => {
@@ -187,19 +216,25 @@ function applyEdits(chat) {
 }
 
 // Notion integration
-document.getElementById('to-notion').onclick = () => {
-  fetchChat(c => {
-    setStatus("Exporting to Notion...");
-    const token = document.getElementById('notion-token').value.trim();
-    const db = document.getElementById('notion-db').value.trim();
-    if (!token) {
-      setStatus("✗ Please enter Notion integration token");
-      return;
-    }
-    sendToNotion(token, db, buildMarkdown(applyEdits(c)), (ok,msg) => 
-      setStatus(ok?"✓ Exported to Notion":("✗ "+(msg||"Error")))
-    );
-  });
+document.getElementById('to-notion').onclick = async () => {
+  try {
+    await loadScript('notion_api.js');
+    fetchChat(c => {
+      setStatus("Exporting to Notion...");
+      const token = document.getElementById('notion-token').value.trim();
+      const db = document.getElementById('notion-db').value.trim();
+      if (!token) {
+        setStatus("✗ Please enter Notion integration token");
+        return;
+      }
+      sendToNotion(token, db, buildMarkdown(applyEdits(c)), (ok,msg) =>
+        setStatus(ok?"✓ Exported to Notion":("✗ "+(msg||"Error")))
+      );
+    });
+  } catch (err) {
+    setStatus('✗ Error loading Notion library');
+    console.error(err);
+  }
 };
 
 // Google Drive Placeholder
