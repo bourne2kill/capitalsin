@@ -204,13 +204,20 @@ document.getElementById('edit-messages').onclick = () =>
 // Apply edits and custom names
 function applyEdits(chat) {
   try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
+    const cc = JSON.parse(localStorage.getItem("customChat") || "[]");
+    if (cc && cc.length) {
       return cc;
     }
-  } catch(e) {}
-  
-  return chat.map(msg => Object.assign({}, msg, {
+  } catch (e) {}
+
+  // Performance: Early return for default case to avoid unnecessary mapping
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
+
+  // Use object spread for better performance and readability than Object.assign
+  return chat.map(msg => ({
+    ...msg,
     sender: msg.sender === "AI" ? aiName : userName
   }));
 }
