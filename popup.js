@@ -210,7 +210,13 @@ function applyEdits(chat) {
     }
   } catch(e) {}
   
-  return chat.map(msg => Object.assign({}, msg, {
+  // Performance: Early return if names are default and no custom edits exist
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
+
+  return chat.map(msg => ({
+    ...msg,
     sender: msg.sender === "AI" ? aiName : userName
   }));
 }
