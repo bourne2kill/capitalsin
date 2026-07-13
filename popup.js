@@ -203,8 +203,16 @@ document.getElementById('edit-messages').onclick = () =>
 
 // Apply edits and custom names
 function applyEdits(chat) {
+  const customChat = localStorage.getItem("customChat");
+
+  // Performance: Early return for default configuration to avoid unnecessary mapping/allocation
+  // Note: Callers use this for read-only export generation (buildHTML/buildMarkdown), so original chat reference is safe.
+  if (aiName === "AI" && userName === "You" && !customChat) {
+    return chat;
+  }
+
   try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
+    const cc = JSON.parse(customChat || "[]");
     if(cc && cc.length) {
       return cc;
     }
