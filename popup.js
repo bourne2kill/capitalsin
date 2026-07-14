@@ -192,8 +192,9 @@ document.getElementById('edit-messages').onclick = () =>
     const edits = prompt("Edit chat as JSON (advanced):\n[{sender, messageMD, timestamp}]", JSON.stringify(chat,null,2));
     if (edits) {
       try {
-        JSON.parse(edits); // Validate JSON
+        const parsed = JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        customChatCache = parsed; // Update cache
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -201,18 +202,27 @@ document.getElementById('edit-messages').onclick = () =>
     }
   });
 
+let customChatCache = null;
+
 // Apply edits and custom names
 function applyEdits(chat) {
-  try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+  if (!customChatCache) {
+    try {
+      const cc = localStorage.getItem("customChat");
+      customChatCache = cc ? JSON.parse(cc) : [];
+    } catch (e) {
+      customChatCache = [];
     }
-  } catch(e) {}
-  
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  }
+
+  if (customChatCache.length > 0) return customChatCache;
+  if (aiName === "AI" && userName === "You") return chat;
+
+  return chat.map(msg => {
+    const newSender = msg.sender === "AI" ? aiName : userName;
+    if (msg.sender === newSender) return msg;
+    return Object.assign({}, msg, { sender: newSender });
+  });
 }
 
 // Notion integration
