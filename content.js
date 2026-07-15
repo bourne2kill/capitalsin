@@ -25,8 +25,10 @@ function extractTogetherChat() {
     const isUser = msg.classList.contains('user-message');
     const sender = isUser ? 'You' : 'AI';
     const messageHTML = msg.querySelector('.message-text')?.innerHTML || msg.innerHTML;
+    // Keep innerText for message content to preserve formatting
     const messageMD = msg.querySelector('.message-text')?.innerText || msg.innerText;
-    const timestamp = msg.querySelector('.timestamp')?.innerText || '';
+    // Use textContent for metadata to avoid layout thrashing
+    const timestamp = msg.querySelector('.timestamp')?.textContent || '';
     chat.push({ sender, messageHTML, messageMD, timestamp });
   });
   return chat;
@@ -36,7 +38,8 @@ function extractChatGPT() {
   const turns = document.querySelectorAll('[data-testid^="conversation-turn-"]');
   const chat = [];
   turns.forEach(turn => {
-    const isUser = turn.querySelector('img[alt="User"]') || turn.innerText.includes('You');
+    // Use textContent for sender detection to avoid layout thrashing
+    const isUser = turn.querySelector('img[alt="User"]') || turn.textContent.includes('You');
     const sender = isUser ? 'You' : 'AI';
     const contentEl = turn.querySelector('.markdown') || turn.querySelector('.prose') || turn;
     chat.push({
@@ -53,7 +56,8 @@ function extractGrok() {
   const containers = document.querySelectorAll('div[data-testid="message-container"]');
   const chat = [];
   containers.forEach(msg => {
-    const sender = msg.innerText.toLowerCase().includes('grok') ? 'AI' : 'You';
+    // Use textContent for sender detection to avoid layout thrashing
+    const sender = msg.textContent.toLowerCase().includes('grok') ? 'AI' : 'You';
     const content = msg.querySelector('div[dir="auto"]') || msg;
     chat.push({
       sender,
@@ -101,7 +105,8 @@ function extractDeepSeek() {
   const items = document.querySelectorAll('.ds-message-item');
   const chat = [];
   items.forEach(item => {
-    const isUser = item.querySelector('.ds-icon--user') || item.innerText.includes('You');
+    // Use textContent for sender detection to avoid layout thrashing
+    const isUser = item.querySelector('.ds-icon--user') || item.textContent.includes('You');
     const sender = isUser ? 'You' : 'AI';
     const content = item.querySelector('.ds-markdown') || item;
     chat.push({
