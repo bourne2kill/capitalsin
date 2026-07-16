@@ -3,6 +3,7 @@
 let chat = [];
 let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
+let customChatCache = null; // Performance: cache parsed custom chat
 let attachments = [];
 
 // Script lazy loading cache
@@ -194,6 +195,7 @@ document.getElementById('edit-messages').onclick = () =>
       try {
         JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        customChatCache = null; // Invalidate cache
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -201,18 +203,36 @@ document.getElementById('edit-messages').onclick = () =>
     }
   });
 
-// Apply edits and custom names
+/**
+ * Applies custom sender names and user-provided JSON edits to the chat data.
+ * Optimized with caching and early returns to minimize overhead during export.
+ */
 function applyEdits(chat) {
-  try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+  // 1. Check for custom chat overrides from localStorage (cached)
+  if (customChatCache === null) {
+    try {
+      const stored = localStorage.getItem("customChat");
+      customChatCache = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      customChatCache = [];
     }
-  } catch(e) {}
+  }
+
+  if (customChatCache.length > 0) {
+    return customChatCache;
+  }
+
+  // 2. Performance: Early return if using default names and no custom chat
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
   
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  // 3. Map sender names, avoiding unnecessary object allocations if names already match
+  return chat.map(msg => {
+    const newSender = msg.sender === "AI" ? aiName : userName;
+    if (msg.sender === newSender) return msg;
+    return Object.assign({}, msg, { sender: newSender });
+  });
 }
 
 // Notion integration
