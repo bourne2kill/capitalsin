@@ -5,6 +5,9 @@ let aiName = "AI", userName = "You";
 let aiImg, userImg, headerImg, footerImg;
 let attachments = [];
 
+// Cache for parsed custom chat from localStorage
+let customChatCache = null;
+
 // Script lazy loading cache
 const scriptCache = {};
 
@@ -194,6 +197,7 @@ document.getElementById('edit-messages').onclick = () =>
       try {
         JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        customChatCache = null; // Invalidate cache to ensure fresh data for subsequent exports
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -204,15 +208,31 @@ document.getElementById('edit-messages').onclick = () =>
 // Apply edits and custom names
 function applyEdits(chat) {
   try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+    // Prevent redundant localStorage fetching/parsing if cache is populated
+    if (customChatCache === null) {
+      const stored = localStorage.getItem("customChat");
+      customChatCache = stored ? JSON.parse(stored) : [];
     }
-  } catch(e) {}
+    if (customChatCache && customChatCache.length) {
+      return customChatCache;
+    }
+  } catch (e) {
+    customChatCache = [];
+  }
   
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  // Early return if default names are used to avoid O(N) array mapping & object allocations
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
+
+  return chat.map(msg => {
+    const targetSender = msg.sender === "AI" ? aiName : userName;
+    // Avoid object allocations if the sender is already correct
+    if (msg.sender === targetSender) {
+      return msg;
+    }
+    return Object.assign({}, msg, { sender: targetSender });
+  });
 }
 
 // Notion integration
