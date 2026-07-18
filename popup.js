@@ -194,6 +194,8 @@ document.getElementById('edit-messages').onclick = () =>
       try {
         JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        // Invalidate customChatCache to ensure fresh edits are loaded next time
+        customChatCache = null;
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -201,18 +203,37 @@ document.getElementById('edit-messages').onclick = () =>
     }
   });
 
+// Cache for customChat parsed JSON
+let customChatCache = null;
+
 // Apply edits and custom names
 function applyEdits(chat) {
   try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+    // 1. Optimized: Use customChatCache to avoid redundant localStorage.getItem and JSON.parse
+    if (customChatCache === null) {
+      const stored = localStorage.getItem("customChat");
+      customChatCache = stored ? JSON.parse(stored) : [];
+    }
+    if(customChatCache && customChatCache.length) {
+      return customChatCache;
     }
   } catch(e) {}
   
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  // 2. Optimized: Skip mapping entirely with an early return if both names are at default
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
+
+  // 3. Optimized: Avoid unnecessary object copying if the target sender is already correct
+  return chat.map(msg => {
+    const targetSender = msg.sender === "AI" ? aiName : userName;
+    if (msg.sender === targetSender) {
+      return msg;
+    }
+    return Object.assign({}, msg, {
+      sender: targetSender
+    });
+  });
 }
 
 // Notion integration
