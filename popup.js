@@ -8,6 +8,9 @@ let attachments = [];
 // Script lazy loading cache
 const scriptCache = {};
 
+// Cache for custom edits from localStorage
+let customChatCache = null;
+
 /**
  * Dynamically loads a script and returns a promise.
  * Ensures each script is only loaded once.
@@ -194,6 +197,7 @@ document.getElementById('edit-messages').onclick = () =>
       try {
         JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        customChatCache = null; // Invalidate cache on new edit save
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -203,16 +207,43 @@ document.getElementById('edit-messages').onclick = () =>
 
 // Apply edits and custom names
 function applyEdits(chat) {
-  try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+  // If we have custom chat saved, try to retrieve it from memory cache or parse from localStorage
+  if (customChatCache === null) {
+    try {
+      const stored = localStorage.getItem("customChat");
+      if (stored) {
+        const cc = JSON.parse(stored);
+        if (cc && cc.length) {
+          customChatCache = cc;
+        } else {
+          customChatCache = false;
+        }
+      } else {
+        customChatCache = false;
+      }
+    } catch(e) {
+      customChatCache = false; // Mark as false/empty to avoid parsing repeatedly
     }
-  } catch(e) {}
+  }
+
+  if (Array.isArray(customChatCache)) {
+    return customChatCache;
+  }
+
+  // Performance optimization: if AI Name and User Name are still at defaults ("AI", "You"),
+  // return the original chat array directly without map operations to avoid useless cloning/allocation.
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
   
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  // Optimize mapping by avoiding redundant Object.assign allocations if sender name already matches target
+  return chat.map(msg => {
+    const targetSender = msg.sender === "AI" ? aiName : userName;
+    if (msg.sender === targetSender) {
+      return msg;
+    }
+    return Object.assign({}, msg, { sender: targetSender });
+  });
 }
 
 // Notion integration
