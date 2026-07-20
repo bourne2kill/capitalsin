@@ -186,6 +186,9 @@ document.getElementById('screenshot-full').onclick = () => {
   });
 };
 
+// Cache for applyEdits to avoid redundant localStorage JSON parsing
+let customChatCache = null;
+
 // Edit messages (JSON editor)
 document.getElementById('edit-messages').onclick = () =>
   fetchChat(chat => {
@@ -194,6 +197,8 @@ document.getElementById('edit-messages').onclick = () =>
       try {
         JSON.parse(edits); // Validate JSON
         localStorage.setItem("customChat", edits);
+        // Invalidate cache on new edit save
+        customChatCache = null;
         setStatus('✓ Messages saved for edit');
       } catch(e) {
         setStatus('✗ Invalid JSON');
@@ -202,17 +207,36 @@ document.getElementById('edit-messages').onclick = () =>
   });
 
 // Apply edits and custom names
+// Cached reads and fast pathways avoid heavy JSON parse and Object.assign allocations
 function applyEdits(chat) {
-  try {
-    const cc = JSON.parse(localStorage.getItem("customChat")||"[]");
-    if(cc && cc.length) {
-      return cc;
+  if (customChatCache === null) {
+    try {
+      const stored = localStorage.getItem("customChat");
+      customChatCache = stored ? JSON.parse(stored) : [];
+    } catch(e) {
+      customChatCache = [];
     }
-  } catch(e) {}
+  }
+
+  if (customChatCache && customChatCache.length) {
+    return customChatCache;
+  }
   
-  return chat.map(msg => Object.assign({}, msg, {
-    sender: msg.sender === "AI" ? aiName : userName
-  }));
+  // Early return if default participant names are unchanged
+  if (aiName === "AI" && userName === "You") {
+    return chat;
+  }
+
+  return chat.map(msg => {
+    const expectedSender = msg.sender === "AI" ? aiName : userName;
+    // Avoid redundant allocation if name is already correct
+    if (msg.sender === expectedSender) {
+      return msg;
+    }
+    return Object.assign({}, msg, {
+      sender: expectedSender
+    });
+  });
 }
 
 // Notion integration
